@@ -2,8 +2,6 @@ package net.runelite.client.plugins.toa;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JCheckBox;
-import javax.swing.JOptionPane;
 import net.runelite.api.ItemID;
 import net.runelite.client.plugins.Util.Prayer;
 import net.runelite.client.plugins.toa.Akkha.Akkha;
@@ -21,7 +19,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.*;
-import net.runelite.client.ui.ColorScheme;
 import org.apache.commons.lang3.ArrayUtils;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -120,15 +117,12 @@ public class ToaPlugin extends Plugin {
 			packet = packetETHAN;//TODO change to ETHAN
 		}
         this.overlayManager.add(this.toaDebugBox);
-        revs = true;
-		if(client.getRevision() != 213){
-			revs = false;
-			JCheckBox checkbox = new JCheckBox();
-			checkbox.setBackground(ColorScheme.LIGHT_GRAY_COLOR);
-			final int result = JOptionPane.showOptionDialog(checkbox, "REVS OUTDATED: Overlays Only",
-				"REVS OUTDATED", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
-				null, new String[]{"I Understand", "What?"}, "No");
-		}
+        // Legacy packet providers were only verified against game revision 213.
+        // Overlays use the public RuneLite API and do not depend on this revision.
+        revs = client.getRevision() == 213;
+        if (!revs) {
+            log.info("Legacy packet integration disabled for game revision {}; overlays remain available", client.getRevision());
+        }
 
 
         if (rooms == null)
@@ -140,12 +134,13 @@ public class ToaPlugin extends Plugin {
             {
                 log.info("Checking room");
                 room.init();
-                room.setpackMeth(packet);
+
             }
         }
 
         for (Room room : rooms)
         {
+            room.setpackMeth(packet);
             room.load();
         }
 
@@ -158,9 +153,10 @@ public class ToaPlugin extends Plugin {
     public void shutDown() {
         this.overlayManager.remove(this.toaDebugBox);
 
-        for (Room room : rooms)
-        {
-            room.unload();
+        if (rooms != null) {
+            for (Room room : rooms) {
+                room.unload();
+            }
         }
         //List<Prayer> test = new ArrayList<>();
 		//test.add(0, Prayer.PROTECT_FROM_MELEE);
@@ -221,6 +217,9 @@ public class ToaPlugin extends Plugin {
 
     public boolean inRoomRegion()
     {
+        if (regionIds == null || client.getLocalPlayer() == null) {
+            return false;
+        }
         for (int regionId : regionIds) {
             if (ArrayUtils.contains(client.getMapRegions(), regionId))
                 return true;

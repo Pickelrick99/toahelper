@@ -131,7 +131,7 @@ public class Kephri extends Room {
         else
             flyActive = false;
 
-        if (client.getLocalPlayer().getGraphic() == 2146 && !flyActive){
+        if (client.getLocalPlayer().hasSpotAnim(2146) && !flyActive){
             flyActive = true;
             flyTicks = 4;
         }
